@@ -95,7 +95,7 @@ export function AuditorConsole() {
       } catch {
         setState({
           kind: "error",
-          message: `Resposta não-JSON (HTTP ${response.status}).`,
+          message: copy.httpNotJson(response.status),
         });
         return;
       }
@@ -107,7 +107,7 @@ export function AuditorConsole() {
           code: err.success ? err.data.code : undefined,
           message: err.success
             ? err.data.error
-            : `Falha HTTP ${response.status}`,
+            : copy.httpFailed(response.status),
         });
         return;
       }
@@ -117,14 +117,14 @@ export function AuditorConsole() {
       if (error instanceof DOMException && error.name === "AbortError") {
         setState({
           kind: "error",
-          message: `Tempo esgotado (${AUDIT_TIMEOUT_MS / 1000}s) ou auditoria cancelada.`,
+          message: copy.timeout(AUDIT_TIMEOUT_MS / 1000),
         });
         return;
       }
       setState({
         kind: "error",
         message:
-          error instanceof Error ? error.message : "Não foi possível falar com /api/v1/audit",
+          error instanceof Error ? error.message : copy.unreachable,
       });
     } finally {
       window.clearTimeout(timeout);
@@ -154,7 +154,7 @@ export function AuditorConsole() {
         <ul className="status-pills">
           <li>
             {policyCount === undefined
-              ? "políticas…"
+              ? copy.policiesLoading
               : copy.policiesCount(policyCount)}
           </li>
           <li className={health?.gemini_configured ? "ok" : "off"}>
@@ -162,7 +162,7 @@ export function AuditorConsole() {
               ? health.gemini_configured
                 ? copy.geminiOk
                 : copy.geminiOff
-              : "modelo…"}
+              : copy.modelLoading}
           </li>
         </ul>
       </header>
@@ -207,7 +207,7 @@ export function AuditorConsole() {
           />
           <p className="meta-row">
             <span>{copy.chars(scenario.trim().length)}</span>
-            {customised ? <span>texto editado</span> : null}
+            {customised ? <span>{copy.edited}</span> : null}
             {tooShort ? <span className="warn-text">{copy.tooShort}</span> : null}
           </p>
 

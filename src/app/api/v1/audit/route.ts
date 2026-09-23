@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     if (error instanceof UpstreamModelError) {
       const body: ApiError = {
         error: error.message,
-        code: error.message.includes("validation") ? "PARSE_ERROR" : "UPSTREAM_MODEL",
+        code: /valida/i.test(error.message) ? "PARSE_ERROR" : "UPSTREAM_MODEL",
       };
       return NextResponse.json(body, { status: 502 });
     }

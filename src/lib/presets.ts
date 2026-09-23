@@ -11,12 +11,12 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     label: "S3 público em dado de cliente",
     blurb: "ACL AllUsers + Block Public Access off — POL-S3-001.",
     architecture_scenario:
-      "Conta AWS de produção com o bucket S3 customer-data-prod guardando exportes PCI e PII de cliente. Block Public Access está desligado na conta e no bucket. A ACL do bucket concede READ para AllUsers. Não há bucket policy negando s3:GetObject público. Criptografia default é só SSE-S3. Server access logging desligado. Versionamento desligado.",
+      "Conta AWS de produção com o bucket S3 customer-data-prod guardando exportações PCI e PII de cliente. Block Public Access está desligado na conta e no bucket. A ACL do bucket concede READ para AllUsers. Não há bucket policy negando s3:GetObject público. Criptografia default é só SSE-S3. Server access logging desligado. Versionamento desligado.",
   },
   {
     id: "iam-admin-keys",
     label: "IAM user com AdministratorAccess",
-    blurb: "Admin permanente + access key velha — POL-IAM-005.",
+    blurb: "Admin permanente e access key antiga — POL-IAM-005.",
     architecture_scenario:
       "Vários usuários IAM humanos autenticam com access keys de longa duração. Três desenvolvedores têm a managed policy AdministratorAccess colada direto no usuário. MFA não é exigido no console. A access key de admin mais antiga foi rotacionada há 140 dias. O GitHub Actions da conta reutiliza a key de um desenvolvedor em vez de role OIDC.",
   },

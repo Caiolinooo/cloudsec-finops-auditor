@@ -10,7 +10,7 @@ const POLICIES_DIR = join(process.cwd(), "policies");
 function resolvePoliciesDir(): string {
   if (!existsSync(POLICIES_DIR)) {
     throw new Error(
-      `Unable to locate policies/*.md at ${POLICIES_DIR}. Expected a policies/ directory at the repo root.`,
+      `Não achei policies/*.md em ${POLICIES_DIR}. Esperava um diretório policies/ na raiz do repo.`,
     );
   }
   return POLICIES_DIR;
@@ -22,7 +22,7 @@ function parseFrontMatter(raw: string, fileName: string): PolicyDocument {
   const title = titleLine.replace(/^#\s+/, "").trim();
   const id = extractPolicyId(title) ?? extractPolicyId(fileName);
   if (!id) {
-    throw new Error(`Policy file ${fileName} is missing a POL-XXX-000 identifier`);
+    throw new Error(`O arquivo ${fileName} não tem identificador POL-XXX-000`);
   }
 
   let severity = "UNSET";
@@ -63,7 +63,7 @@ export function loadPolicies(dir = resolvePoliciesDir()): PolicyDocument[] {
     .filter((name) => name.endsWith(".md"))
     .sort();
   if (files.length === 0) {
-    throw new Error(`No policy markdown files found in ${dir}`);
+    throw new Error(`Nenhum Markdown de política em ${dir}`);
   }
   return files.map((fileName) =>
     parseFrontMatter(readFileSync(join(dir, fileName), "utf8"), fileName),

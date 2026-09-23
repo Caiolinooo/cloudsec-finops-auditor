@@ -16,9 +16,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Auditoria de conformidade — CloudSec / FinOps",
+  title: "Auditor de conformidade — CloudSec / FinOps",
   description:
-    "Parecer de conformidade sobre um cenário de arquitetura, com cláusulas CIS/SOC 2/FinOps recuperadas do corpus e JSON estruturado via Gemini.",
+    "Parecer JSON de um cenário de arquitetura contra cláusulas CIS / SOC 2 / FinOps recuperadas do corpus. Gemini no route handler, Zod no envelope.",
 };
 
 type RootLayoutProps = {
