@@ -1,0 +1,5 @@
+{
+  "id": "public-s3-acl",
+  "architecture_scenario": "Production AWS account hosts an S3 bucket named customer-data-prod that stores PCI cardholder exports and customer PII. Block Public Access is disabled on both the account and the bucket. The bucket ACL grants AllUsers READ. There is no bucket policy denying public s3:GetObject. Default encryption is SSE-S3 only. Server access logging is off. Versioning is disabled.",
+  "expected_policy_ids": ["POL-S3-001"]
+}
