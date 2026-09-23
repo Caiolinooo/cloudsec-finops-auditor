@@ -43,7 +43,7 @@ def main() -> int:
     try:
         from deepeval.models import GeminiModel
 
-        model = GeminiModel(model_name="gemini-2.0-flash", api_key=api_key)
+        model = GeminiModel(model_name="gemini-3.6-flash", api_key=api_key)
     except Exception as exc:  # pragma: no cover - import surface varies by version
         print(f"Unable to construct DeepEval GeminiModel ({exc}).", file=sys.stderr)
         return 1
