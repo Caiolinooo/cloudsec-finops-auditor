@@ -53,20 +53,20 @@ async function generateOnce(
 
   const text = response.text;
   if (!text) {
-    throw new UpstreamModelError(`Model ${model} returned an empty body`);
+    throw new UpstreamModelError(`Modelo ${model} devolveu corpo vazio`);
   }
 
   let parsed: unknown;
   try {
     parsed = extractJsonObject(text);
   } catch {
-    throw new UpstreamModelError(`Model ${model} returned non-JSON text`);
+    throw new UpstreamModelError(`Modelo ${model} devolveu texto que não é JSON`);
   }
 
   const result = AuditResultSchema.safeParse(parsed);
   if (!result.success) {
     throw new UpstreamModelError(
-      `Model ${model} JSON failed AuditResult validation: ${result.error.message}`,
+      `JSON de ${model} falhou na validação do AuditResult: ${result.error.message}`,
     );
   }
   return result.data;
@@ -94,6 +94,6 @@ export async function generateStructuredAudit(prompt: string): Promise<{
   }
 
   const message =
-    lastError instanceof Error ? lastError.message : "Gemini request failed";
+    lastError instanceof Error ? lastError.message : "Falha na chamada ao Gemini";
   throw new UpstreamModelError(message);
 }

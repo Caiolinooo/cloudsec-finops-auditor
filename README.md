@@ -1,8 +1,9 @@
 # CloudSec & FinOps Compliance Auditor
 
-Auditor interno (demo pública) de cenário de arquitetura contra
-políticas CIS / SOC 2 / FinOps em Markdown. O parecer é JSON tipado:
-status, risco, citações, remediação e impacto de custo.
+Console interno de auditoria. Você descreve um cenário de arquitetura;
+o serviço compara com políticas CIS / SOC 2 / FinOps em Markdown e
+devolve um parecer JSON: status, risco, citações, remediação e impacto
+de custo.
 
 API e UI no mesmo Next.js — um deploy na Vercel. Sem FastAPI ao lado,
 sem Streamlit no caminho principal. O browser só chama
@@ -61,8 +62,12 @@ npm run eval         # caminho real; no-op sem chave
 
 ## Vercel
 
-Projeto Next.js. Em Environment Variables: `GEMINI_API_KEY` (Production
-e Preview). `GET /api/health` deve responder `gemini_configured: true`.
+Projeto Next.js. Em **Settings → Environment Variables**, gravar
+`GEMINI_API_KEY` em Production e Preview. Sem essa variável o
+`GET /api/health` responde `gemini_configured: false` e
+`POST /api/v1/audit` devolve `503 MISSING_API_KEY`.
+
+Opcionais: `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`.
 Build: `npm run build`. Output padrão.
 
 ## CI
@@ -84,12 +89,3 @@ o que errar — com três textos o BM25 acerta no chute.
 
 Para Qdrant depois: embeddar os chunks, upsert com `policyId` /
 `heading` / `text`, trocar `scoreDense()`. Envelope da API não muda.
-
-## Resumo
-
-Auditor CloudSec/FinOps: Next.js App Router, RAG híbrido sobre
-Markdown CIS/SOC 2/FinOps, Gemini em JSON validado com Zod
-(`{ latency_ms, audit }`). Repo `cloudsec-finops-auditor`.
-
-EN: CloudSec/FinOps auditor — Next.js, hybrid RAG over versioned
-markdown, Gemini structured JSON, Zod envelope. Same repo.

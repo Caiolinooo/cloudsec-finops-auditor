@@ -422,16 +422,6 @@ textarea:focus {
   line-height: 1.45;
 }
 
-.site-foot {
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.site-foot a {
-  color: var(--accent);
-}
-
 @media (max-width: 900px) {
   .topbar,
   .workspace,

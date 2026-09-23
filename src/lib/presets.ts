@@ -30,7 +30,7 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   {
     id: "baseline-ok",
     label: "Baseline aparentemente conforme",
-    blurb: "BPA, KMS, lifecycle, SSO — deve sair CONFORME ou ALERTA leve.",
+    blurb: "BPA, KMS, lifecycle e SSO no baseline.",
     architecture_scenario:
       "Bucket customer-data-prod com Block Public Access nas quatro flags, sem ACL pública, default encryption SSE-KMS numa CMK com rotação anual e S3 Bucket Key. Versionamento ligado, MFA Delete ligado, lifecycle transicionando para Glacier aos 90 dias. Access logging vai para um bucket de log na conta de segurança. Humanos entram por IAM Identity Center; ninguém tem AdministratorAccess no usuário. MFA obrigatório. Keys de workload são role + OIDC. Tags finops:owner, finops:env, finops:service preenchidas. Organization trail multi-região ativo.",
   },
@@ -44,7 +44,7 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   {
     id: "misto-s3-iam",
     label: "S3 aberto + admin IAM",
-    blurb: "Dois findings graves no mesmo cenário.",
+    blurb: "ACL pública e AdministratorAccess na mesma conta.",
     architecture_scenario:
       "Mesma conta: customer-data-prod com ACL AllUsers READ e Block Public Access desabilitado, mais dois IAM users com AdministratorAccess e access keys de 11 meses. MFA off no console. Sem CloudTrail organizacional. Criptografia SSE-S3. Sem lifecycle. Time usa NAT único sem VPC endpoint de S3 e a linha DataTransfer passa de 20% da fatura, sem owner.",
   },
