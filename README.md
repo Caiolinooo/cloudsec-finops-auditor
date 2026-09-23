@@ -1,122 +1,95 @@
 # CloudSec & FinOps Compliance Auditor
 
-Portfolio / curriculum project by **[Caiolinooo](https://github.com/Caiolinooo)**. A corporate-style auditor that ingests CIS / SOC 2 / FinOps-style policies, retrieves the relevant clauses with a **light hybrid RAG**, calls **Gemini** for **strict structured JSON**, and returns risk, citations, and remediation.
+Auditor interno (demo pública) de cenário de arquitetura contra
+políticas CIS / SOC 2 / FinOps em Markdown. O parecer é JSON tipado:
+status, risco, citações, remediação e impacto de custo.
 
-Live demo: **[LIVE_DEMO_URL]** *(replace after the Vercel project is linked)*
+API e UI no mesmo Next.js — um deploy na Vercel. Sem FastAPI ao lado,
+sem Streamlit no caminho principal. O browser só chama
+`POST /api/v1/audit`. Quem fala com o Gemini é o route handler.
 
----
-
-## Architecture
+## Por que assim
 
 ```mermaid
 flowchart LR
-  UI["Next.js UI<br/>presets + metrics"] -->|"POST /api/v1/audit"| API["Route Handler<br/>Node runtime"]
-  API --> RAG["Hybrid RAG<br/>BM25 + in-memory TF-IDF"]
-  RAG --> MD["policies/*.md"]
-  API --> GEM["Gemini flash<br/>responseSchema + Zod"]
-  GEM --> ENV["Typed envelope<br/>{ latency_ms, audit }"]
-  ENV --> UI
+  UI[UI] -->|POST /api/v1/audit| API[Route Handler]
+  API --> RAG[BM25 + TF-IDF local]
+  RAG --> MD[policies/*.md]
+  API --> G[Gemini flash]
+  G --> Z[Zod AuditResult]
+  Z --> UI
 ```
 
-| Layer | Choice | Notes |
-| --- | --- | --- |
-| App | Next.js App Router + TypeScript + Tailwind | Single Vercel deploy — no FastAPI / no Streamlit |
-| API | `POST /api/v1/audit`, `GET /api/health` | Shared Zod schemas (`AuditRequest`, `AuditResult`) |
-| Retrieval | Okapi BM25 + hashed TF-IDF vectors + RRF | In-process; no Qdrant cloud required for the demo |
-| LLM | `gemini-2.5-flash` → fallback `gemini-2.0-flash` | Override with `GEMINI_MODEL` / `GEMINI_FALLBACK_MODEL` |
-| Evals | Vitest (retrieval + schema) + live faithfulness ≥ 0.85 | DeepEval job skips if `GEMINI_API_KEY` secret is missing |
+Route Handler no App Router, não um serviço Python, porque o alvo é um
+projeto só na Vercel. RAG in-process (BM25 + vetor TF-IDF hasheado +
+RRF) porque Qdrant na nuvem é custo e ops à toa para um corpus deste
+tamanho. O denso troca em `src/lib/rag/embeddings.ts`: no dia em que
+o corpus crescer, vira `qdrant.search`; o léxico fica.
 
-The browser **never** calls Gemini. The UI only `fetch`es `/api/v1/audit`.
+`responseSchema` + Zod porque modelo solto devolve prosa. Envelope
+`{ latency_ms, audit }` — sem isso a UI inventa métrica. Uso
+`gemini-2.5-flash` com fallback `gemini-2.0-flash`; Pro não agrega
+neste fluxo.
 
-### Swap the vector store later (Qdrant)
+Faithfulness ≥ 0.85 existe porque citação inventada queima o parecer.
+O job de eval no Actions não quebra se o secret `GEMINI_API_KEY`
+faltar: sem chave não tem o que julgar, e score inventado não entra
+no repo.
 
-1. Embed `policies/*.md` chunks with a real embedding model (e.g. Gemini `text-embedding-004`).
-2. Upsert into a Qdrant collection (`policies`) with payload `{ policyId, heading, text, sourceFile }`.
-3. Replace `scoreDense()` in `src/lib/rag/embeddings.ts` with `qdrant.search`.
-4. Keep BM25 + Reciprocal Rank Fusion in `src/lib/rag/retrieve.ts`. The API envelope does not change.
-
----
-
-## Local run
+## Local
 
 ```bash
 npm install
 cp .env.example .env.local
-# edit .env.local — set GEMINI_API_KEY
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-Useful commands:
+http://localhost:3000 — `GEMINI_API_KEY` só é obrigatória na auditoria,
+não no `npm run build`.
 
 ```bash
-npm run build        # succeeds without a live key
-npm run typecheck
-npm run lint
-npm test             # retrieval + Zod + deterministic faithfulness
-npm run eval         # live audit path; no-ops if GEMINI_API_KEY is unset
+npm run build
+npm test             # retrieval + schema; não chama o modelo
+npm run eval         # caminho real; no-op sem chave
 ```
 
-`npm run build` must not require `GEMINI_API_KEY`. Runtime audits do.
-
-### Environment
-
-| Variable | Required | Default |
+| Variável | Uso | Default |
 | --- | --- | --- |
-| `GEMINI_API_KEY` | Runtime (`POST /api/v1/audit`) | — |
-| `GEMINI_MODEL` | No | `gemini-2.5-flash` |
-| `GEMINI_FALLBACK_MODEL` | No | `gemini-2.0-flash` |
+| `GEMINI_API_KEY` | `POST /api/v1/audit` | — |
+| `GEMINI_MODEL` | opcional | `gemini-2.5-flash` |
+| `GEMINI_FALLBACK_MODEL` | opcional | `gemini-2.0-flash` |
 
----
+## Vercel
 
-## Vercel deploy
-
-1. Import `Caiolinooo/cloudsec-finops-auditor` as a Next.js project.
-2. **Project Settings → Environment Variables** → add `GEMINI_API_KEY` (Production + Preview).
-3. Optional: `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`.
-4. Deploy. Confirm `GET /api/health` returns `"gemini_configured": true`.
-5. Paste the production URL into this README (`[LIVE_DEMO_URL]`) and the LinkedIn blurb.
-
-Framework preset: **Next.js**. Build command: `npm run build`. Output: default.
-
----
+Projeto Next.js. Em Environment Variables: `GEMINI_API_KEY` (Production
+e Preview). `GET /api/health` deve responder `gemini_configured: true`.
+Build: `npm run build`. Output padrão.
 
 ## CI
 
-Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
-1. **unit** — `npm ci`, lint, `tsc --noEmit`, Vitest (retrieval for the public-S3 scenario + schema).
-2. **eval** — if repository secret `GEMINI_API_KEY` is **missing**, the job logs a skip and stays green. If present, it runs:
-   - `npm run eval` (real `runAudit()` + citation grounding ≥ 0.85)
-   - DeepEval `FaithfulnessMetric` ≥ 0.85 on the same artifact (`evals/deepeval_faithfulness.py`)
+- **unit** — lint, `tsc`, Vitest (corpus + ranking do S3 público).
+- **eval** — com secret `GEMINI_API_KEY`, roda `npm run eval` e o
+  DeepEval no mesmo artefato. Sem secret, o job só registra o skip.
 
-Add the secret: **Settings → Secrets and variables → Actions → `GEMINI_API_KEY`**.
+Secret: Settings → Secrets and variables → Actions → `GEMINI_API_KEY`.
 
----
+## Políticas
 
-## Seed policies
+Uma cláusula por arquivo em [`policies/`](policies/). Não vai um blob
+no prompt. Núcleo: `POL-S3-001`, `POL-S3-002`, `POL-IAM-005`. O resto
+(KMS, CloudTrail, MFA Delete, NAT, tags) existe para o retriever ter
+o que errar — com três textos o BM25 acerta no chute.
 
-Versioned under [`policies/`](policies/):
+Para Qdrant depois: embeddar os chunks, upsert com `policyId` /
+`heading` / `text`, trocar `scoreDense()`. Envelope da API não muda.
 
-| ID | Clause | Severity |
-| --- | --- | --- |
-| POL-S3-001 | Block Public Access for customer-data buckets | CRITICAL · SOC 2 |
-| POL-S3-002 | Versioning + Lifecycle to Glacier after 90 days | FinOps 4.2 |
-| POL-IAM-005 | No direct `AdministratorAccess` on IAM users | Least privilege |
-| POL-S3-003 / 004 | SSE-KMS, access logging | HIGH / MEDIUM |
-| POL-IAM-001 / 003 | MFA, 90-day key rotation | HIGH / MEDIUM |
-| POL-FIN-001 / 002 | Idle spend, cost-allocation tags | FinOps |
-| POL-NET-001 | No `0.0.0.0/0` on admin ports | HIGH |
+## Resumo
 
----
+Auditor CloudSec/FinOps: Next.js App Router, RAG híbrido sobre
+Markdown CIS/SOC 2/FinOps, Gemini em JSON validado com Zod
+(`{ latency_ms, audit }`). Repo `cloudsec-finops-auditor`.
 
-## Curriculum blurbs
-
-### Português
-
-Auditor de conformidade CloudSec & FinOps: Next.js (App Router) com RAG híbrido (BM25 + vetores locais) sobre políticas CIS/SOC 2/FinOps versionadas em Markdown, Gemini com JSON estruturado validado em Zod, citações e remediação. Demo: **[LIVE_DEMO_URL]** · repo: `cloudsec-finops-auditor`.
-
-### English
-
-CloudSec & FinOps compliance auditor: Next.js App Router, hybrid RAG over versioned CIS/SOC 2/FinOps markdown, Gemini structured JSON (Zod envelope `{ latency_ms, audit }`), citations and remediations. Live: **[LIVE_DEMO_URL]** · GitHub: `cloudsec-finops-auditor`.
+EN: CloudSec/FinOps auditor — Next.js, hybrid RAG over versioned
+markdown, Gemini structured JSON, Zod envelope. Same repo.

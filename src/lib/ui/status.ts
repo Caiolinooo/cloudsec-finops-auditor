@@ -1,6 +1,8 @@
 import type { ComplianceStatus, RiskLevel } from "@/lib/schemas";
 
-export function statusTone(status: ComplianceStatus): string {
+export type Tone = "ok" | "warn" | "high" | "crit";
+
+export function statusTone(status: ComplianceStatus): Tone {
   switch (status) {
     case "COMPLIANT":
       return "ok";
@@ -15,7 +17,7 @@ export function statusTone(status: ComplianceStatus): string {
   }
 }
 
-export function riskTone(risk: RiskLevel): string {
+export function riskTone(risk: RiskLevel): Tone {
   switch (risk) {
     case "LOW":
       return "ok";
@@ -27,6 +29,25 @@ export function riskTone(risk: RiskLevel): string {
       return "crit";
     default: {
       const _exhaustive: never = risk;
+      return _exhaustive;
+    }
+  }
+}
+
+export function toneClass(tone: Tone | "idle"): string {
+  switch (tone) {
+    case "ok":
+      return "tone-ok";
+    case "warn":
+      return "tone-warn";
+    case "high":
+      return "tone-high";
+    case "crit":
+      return "tone-crit";
+    case "idle":
+      return "tone-idle";
+    default: {
+      const _exhaustive: never = tone;
       return _exhaustive;
     }
   }

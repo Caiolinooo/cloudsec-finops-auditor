@@ -14,7 +14,7 @@ export const AuditRequestSchema = z.object({
   architecture_scenario: z
     .string()
     .trim()
-    .min(12, "architecture_scenario must describe the architecture (min 12 chars)"),
+    .min(12, "architecture_scenario precisa descrever a arquitetura (mín. 12 caracteres)"),
 });
 export type AuditRequest = z.infer<typeof AuditRequestSchema>;
 
@@ -33,6 +33,32 @@ export const AuditEnvelopeSchema = z.object({
   audit: AuditResultSchema,
 });
 export type AuditEnvelope = z.infer<typeof AuditEnvelopeSchema>;
+
+export const HealthSchema = z.object({
+  status: z.literal("ok"),
+  service: z.string(),
+  gemini_configured: z.boolean(),
+  policy_count: z.number().int().nonnegative(),
+  models: z.object({
+    primary: z.string(),
+    fallback: z.string(),
+  }),
+});
+export type Health = z.infer<typeof HealthSchema>;
+
+export const PolicyCatalogSchema = z.object({
+  count: z.number().int().nonnegative(),
+  policies: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      severity: z.string(),
+      framework: z.string(),
+      domain: z.string(),
+    }),
+  ),
+});
+export type PolicyCatalog = z.infer<typeof PolicyCatalogSchema>;
 
 export const ApiErrorSchema = z.object({
   error: z.string(),

@@ -1,54 +1,104 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { copy, riskLabel, statusLabel } from "@/lib/copy";
 import { SCENARIO_PRESETS } from "@/lib/presets";
 import {
-  AuditEnvelopeSchema,
   ApiErrorSchema,
+  AuditEnvelopeSchema,
+  HealthSchema,
+  PolicyCatalogSchema,
   type AuditEnvelope,
+  type Health,
+  type PolicyCatalog,
 } from "@/lib/schemas";
-import { riskTone, statusTone } from "@/lib/ui/status";
+import { riskTone, statusTone, toneClass } from "@/lib/ui/status";
 
 type UiState =
   | { kind: "idle" }
-  | { kind: "loading" }
+  | { kind: "loading"; startedAt: number }
   | { kind: "error"; message: string; code?: string }
   | { kind: "ok"; envelope: AuditEnvelope };
 
-function toneClass(tone: string): string {
-  switch (tone) {
-    case "ok":
-      return "tone-ok";
-    case "warn":
-      return "tone-warn";
-    case "high":
-      return "tone-high";
-    case "crit":
-      return "tone-crit";
-    default:
-      return "tone-idle";
-  }
-}
+const AUDIT_TIMEOUT_MS = 45_000;
 
 export function AuditorConsole() {
   const [presetId, setPresetId] = useState(SCENARIO_PRESETS[0].id);
-  const [scenario, setScenario] = useState(SCENARIO_PRESETS[0].architecture_scenario);
-  const [state, setState] = useState<UiState>({ kind: "idle" });
-
-  const activePreset = useMemo(
-    () => SCENARIO_PRESETS.find((preset) => preset.id === presetId),
-    [presetId],
+  const [scenario, setScenario] = useState(
+    SCENARIO_PRESETS[0].architecture_scenario,
   );
+  const [state, setState] = useState<UiState>({ kind: "idle" });
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [health, setHealth] = useState<Health | null>(null);
+  const [catalog, setCatalog] = useState<PolicyCatalog | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [healthRes, catalogRes] = await Promise.all([
+          fetch("/api/health"),
+          fetch("/api/v1/policies"),
+        ]);
+        const healthJson: unknown = await healthRes.json();
+        const catalogJson: unknown = await catalogRes.json();
+        const parsedHealth = HealthSchema.safeParse(healthJson);
+        const parsedCatalog = PolicyCatalogSchema.safeParse(catalogJson);
+        if (cancelled) return;
+        if (parsedHealth.success) setHealth(parsedHealth.data);
+        if (parsedCatalog.success) setCatalog(parsedCatalog.data);
+      } catch {
+        if (!cancelled) setHealth(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (state.kind !== "loading") return;
+    const startedAt = state.startedAt;
+    const timer = window.setInterval(() => {
+      setElapsedMs(Date.now() - startedAt);
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, [state]);
+
+  const customised = useMemo(() => {
+    const preset = SCENARIO_PRESETS.find((item) => item.id === presetId);
+    return Boolean(preset && preset.architecture_scenario !== scenario);
+  }, [presetId, scenario]);
 
   async function onAudit() {
-    setState({ kind: "loading" });
+    if (scenario.trim().length < 12) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const timeout = window.setTimeout(() => controller.abort(), AUDIT_TIMEOUT_MS);
+    setElapsedMs(0);
+    setState({ kind: "loading", startedAt: Date.now() });
+
     try {
       const response = await fetch("/api/v1/audit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ architecture_scenario: scenario }),
+        signal: controller.signal,
       });
-      const payload: unknown = await response.json();
+
+      const raw = await response.text();
+      let payload: unknown;
+      try {
+        payload = JSON.parse(raw);
+      } catch {
+        setState({
+          kind: "error",
+          message: `Resposta não-JSON (HTTP ${response.status}).`,
+        });
+        return;
+      }
 
       if (!response.ok) {
         const err = ApiErrorSchema.safeParse(payload);
@@ -57,21 +107,27 @@ export function AuditorConsole() {
           code: err.success ? err.data.code : undefined,
           message: err.success
             ? err.data.error
-            : `Audit failed (${response.status})`,
+            : `Falha HTTP ${response.status}`,
         });
         return;
       }
 
-      const envelope = AuditEnvelopeSchema.parse(payload);
-      setState({ kind: "ok", envelope });
+      setState({ kind: "ok", envelope: AuditEnvelopeSchema.parse(payload) });
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setState({
+          kind: "error",
+          message: `Tempo esgotado (${AUDIT_TIMEOUT_MS / 1000}s) ou auditoria cancelada.`,
+        });
+        return;
+      }
       setState({
         kind: "error",
         message:
-          error instanceof Error
-            ? error.message
-            : "Unable to reach /api/v1/audit",
+          error instanceof Error ? error.message : "Não foi possível falar com /api/v1/audit",
       });
+    } finally {
+      window.clearTimeout(timeout);
     }
   }
 
@@ -83,53 +139,53 @@ export function AuditorConsole() {
     setState({ kind: "idle" });
   }
 
+  const tooShort = scenario.trim().length < 12;
+  const policyCount = catalog?.count ?? health?.policy_count;
+
   return (
     <div className="console">
-      <header className="masthead">
-        <div className="brand-block">
-          <p className="eyebrow">Caiolinooo · portfolio / curriculum</p>
-          <h1>
-            CloudSec <span className="amp">&</span> FinOps
-            <span className="title-sub">Compliance Auditor</span>
-          </h1>
-          <p className="lede">
-            Hybrid RAG over versioned CIS / SOC 2 / FinOps clauses. Gemini
-            returns a typed <code>AuditResult</code> — the browser never
-            touches the model.
+      <header className="topbar">
+        <div>
+          <p className="kicker">
+            {copy.product} · {copy.env}
           </p>
+          <h1>{copy.title}</h1>
         </div>
-        <dl className="mast-meta">
-          <div>
-            <dt>API</dt>
-            <dd>POST /api/v1/audit</dd>
-          </div>
-          <div>
-            <dt>Retrieval</dt>
-            <dd>BM25 + in-memory TF-IDF</dd>
-          </div>
-          <div>
-            <dt>Model</dt>
-            <dd>gemini-2.5-flash → 2.0-flash</dd>
-          </div>
-        </dl>
+        <ul className="status-pills">
+          <li>
+            {policyCount === undefined
+              ? "políticas…"
+              : copy.policiesCount(policyCount)}
+          </li>
+          <li className={health?.gemini_configured ? "ok" : "off"}>
+            {health
+              ? health.gemini_configured
+                ? copy.geminiOk
+                : copy.geminiOff
+              : "modelo…"}
+          </li>
+        </ul>
       </header>
 
+      {health && !health.gemini_configured ? (
+        <div className="banner warn" role="status">
+          <strong>{copy.keyMissingTitle}</strong>
+          <p>{copy.keyMissingBody}</p>
+        </div>
+      ) : null}
+
       <div className="workspace">
-        <section className="panel input-panel" aria-labelledby="scenario-heading">
+        <section className="panel" aria-labelledby="scenario-heading">
           <div className="panel-head">
-            <h2 id="scenario-heading">Architecture scenario</h2>
-            <span className="chip">input</span>
+            <h2 id="scenario-heading">{copy.scenario}</h2>
           </div>
 
-          <label className="field-label" htmlFor="preset">
-            Preset scenarios
-          </label>
-          <div className="preset-grid" role="list">
+          <p className="field-label">{copy.presets}</p>
+          <div className="preset-grid">
             {SCENARIO_PRESETS.map((preset) => (
               <button
                 key={preset.id}
                 type="button"
-                role="listitem"
                 className={preset.id === presetId ? "preset active" : "preset"}
                 onClick={() => applyPreset(preset.id)}
               >
@@ -140,50 +196,93 @@ export function AuditorConsole() {
           </div>
 
           <label className="field-label" htmlFor="scenario">
-            Scenario text
+            {copy.scenarioField}
           </label>
           <textarea
             id="scenario"
             value={scenario}
             onChange={(event) => setScenario(event.target.value)}
-            rows={12}
+            rows={11}
             spellCheck={false}
           />
-          {activePreset ? (
-            <p className="hint">Loaded preset: {activePreset.label}</p>
-          ) : null}
+          <p className="meta-row">
+            <span>{copy.chars(scenario.trim().length)}</span>
+            {customised ? <span>texto editado</span> : null}
+            {tooShort ? <span className="warn-text">{copy.tooShort}</span> : null}
+          </p>
 
           <div className="actions">
             <button
               type="button"
               className="run"
               onClick={onAudit}
-              disabled={state.kind === "loading" || scenario.trim().length < 12}
+              disabled={state.kind === "loading" || tooShort}
             >
-              {state.kind === "loading" ? "Auditing…" : "Run compliance audit"}
+              {state.kind === "loading"
+                ? `${copy.running} ${copy.elapsed(elapsedMs)}`
+                : copy.run}
             </button>
-            <p className="hint tight">
-              Calls the Next.js route handler. Requires <code>GEMINI_API_KEY</code>{" "}
-              only on the server.
-            </p>
           </div>
+
+          {catalog ? (
+            <details className="corpus">
+              <summary>
+                {copy.corpus} ({catalog.count})
+              </summary>
+              <ul>
+                {catalog.policies.map((policy) => (
+                  <li key={policy.id}>
+                    <code>{policy.id}</code>
+                    <span>
+                      {policy.severity} · {policy.domain}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
         </section>
 
-        <section className="panel result-panel" aria-labelledby="result-heading">
+        <section className="panel" aria-labelledby="result-heading">
           <div className="panel-head">
-            <h2 id="result-heading">Audit result</h2>
-            <span className="chip">typed envelope</span>
+            <h2 id="result-heading">{copy.result}</h2>
+            {state.kind === "loading" ? (
+              <span className="chip">{copy.elapsed(elapsedMs)}</span>
+            ) : null}
           </div>
 
           {state.kind === "idle" ? (
-            <p className="empty">
-              Select a preset and run the auditor. Findings, citations, and
-              FinOps impact will land here.
-            </p>
+            <div className="empty">
+              <p className="empty-title">{copy.idleTitle}</p>
+              <p>{copy.idleBody}</p>
+              <div className="metrics muted">
+                <article className={`metric ${toneClass("idle")}`}>
+                  <h3>{copy.status}</h3>
+                  <p>—</p>
+                </article>
+                <article className={`metric ${toneClass("idle")}`}>
+                  <h3>{copy.risk}</h3>
+                  <p>—</p>
+                </article>
+                <article className={`metric ${toneClass("idle")}`}>
+                  <h3>{copy.latency}</h3>
+                  <p>—</p>
+                </article>
+              </div>
+            </div>
           ) : null}
 
           {state.kind === "loading" ? (
-            <p className="empty pulse">Retrieving clauses and requesting structured JSON…</p>
+            <div className="empty">
+              <p className="empty-title pulse">
+                {elapsedMs < 900 ? copy.loadingRetrieve : copy.loadingModel}
+              </p>
+              <div className="skel-stack" aria-hidden>
+                <div className="skel" />
+                <div className="skel short" />
+                <div className="skel" />
+              </div>
+            </div>
           ) : null}
 
           {state.kind === "error" ? (
@@ -195,23 +294,15 @@ export function AuditorConsole() {
             >
               <strong>
                 {state.code === "MISSING_API_KEY"
-                  ? "GEMINI_API_KEY missing"
-                  : "Audit error"}
+                  ? copy.keyMissingTitle
+                  : copy.errorTitle}
               </strong>
               <p>{state.message}</p>
-              {state.code === "MISSING_API_KEY" ? (
-                <p className="banner-help">
-                  Copy <code>.env.example</code> to <code>.env.local</code> and
-                  restart <code>npm run dev</code>, or set the variable on the
-                  Vercel project.
-                </p>
-              ) : null}
+              {state.code === "MISSING_API_KEY" ? <p>{copy.keyMissingBody}</p> : null}
             </div>
           ) : null}
 
-          {state.kind === "ok" ? (
-            <AuditView envelope={state.envelope} />
-          ) : null}
+          {state.kind === "ok" ? <AuditView envelope={state.envelope} /> : null}
         </section>
       </div>
     </div>
@@ -225,15 +316,15 @@ function AuditView({ envelope }: { envelope: AuditEnvelope }) {
     <div className="result">
       <div className="metrics">
         <article className={`metric ${toneClass(statusTone(audit.compliance_status))}`}>
-          <h3>Status</h3>
-          <p>{audit.compliance_status.replaceAll("_", " ")}</p>
+          <h3>{copy.status}</h3>
+          <p>{statusLabel(audit.compliance_status)}</p>
         </article>
         <article className={`metric ${toneClass(riskTone(audit.risk_level))}`}>
-          <h3>Risk</h3>
-          <p>{audit.risk_level}</p>
+          <h3>{copy.risk}</h3>
+          <p>{riskLabel(audit.risk_level)}</p>
         </article>
-        <article className="metric tone-idle">
-          <h3>Latency</h3>
+        <article className={`metric ${toneClass("idle")}`}>
+          <h3>{copy.latency}</h3>
           <p>
             {latency_ms}
             <span className="unit">ms</span>
@@ -242,17 +333,17 @@ function AuditView({ envelope }: { envelope: AuditEnvelope }) {
       </div>
 
       <article className="block">
-        <h3>Executive summary</h3>
+        <h3>{copy.summary}</h3>
         <p>{audit.summary}</p>
       </article>
 
       <article className="block">
-        <h3>FinOps / cost impact</h3>
+        <h3>{copy.finops}</h3>
         <p>{audit.estimated_cost_impact}</p>
       </article>
 
       <article className="block">
-        <h3>Cited policies</h3>
+        <h3>{copy.citations}</h3>
         <ul className="cite-list">
           {audit.cited_policies.map((citation) => (
             <li key={citation}>{citation}</li>
@@ -261,7 +352,7 @@ function AuditView({ envelope }: { envelope: AuditEnvelope }) {
       </article>
 
       <article className="block">
-        <h3>Remediation</h3>
+        <h3>{copy.remediation}</h3>
         <ol className="steps">
           {audit.remediation_steps.map((step) => (
             <li key={step}>{step}</li>
@@ -270,7 +361,7 @@ function AuditView({ envelope }: { envelope: AuditEnvelope }) {
       </article>
 
       <details className="json-exp">
-        <summary>Raw JSON envelope</summary>
+        <summary>{copy.rawJson}</summary>
         <pre>
           <code>{JSON.stringify(envelope, null, 2)}</code>
         </pre>

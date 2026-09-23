@@ -7,7 +7,7 @@ export class MissingApiKeyError extends Error {
   readonly code = "MISSING_API_KEY" as const;
 
   constructor() {
-    super("GEMINI_API_KEY is not configured");
+    super("GEMINI_API_KEY ausente");
     this.name = "MissingApiKeyError";
   }
 }

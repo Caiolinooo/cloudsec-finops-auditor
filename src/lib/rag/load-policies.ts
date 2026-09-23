@@ -48,6 +48,16 @@ function parseFrontMatter(raw: string, fileName: string): PolicyDocument {
   };
 }
 
+export function summarizePolicies(documents: PolicyDocument[]) {
+  return documents.map((doc) => ({
+    id: doc.id,
+    title: doc.title,
+    severity: doc.severity,
+    framework: doc.framework,
+    domain: doc.domain,
+  }));
+}
+
 export function loadPolicies(dir = resolvePoliciesDir()): PolicyDocument[] {
   const files = readdirSync(dir)
     .filter((name) => name.endsWith(".md"))

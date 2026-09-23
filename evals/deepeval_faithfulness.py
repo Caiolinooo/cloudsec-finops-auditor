@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""Faithfulness gate via DeepEval against the real audit artifact.
-
-Expects evals/.tmp-last-run.json from `npm run eval` (the TypeScript path
-that calls runAudit). Uses Gemini as the judge when GEMINI_API_KEY is set.
-
-This script never invents scores: DeepEval computes FaithfulnessMetric
-against the retrieval_context produced by the live pipeline.
-"""
+"""DeepEval FaithfulnessMetric on evals/.tmp-last-run.json (from `npm run eval`)."""
 
 from __future__ import annotations
 

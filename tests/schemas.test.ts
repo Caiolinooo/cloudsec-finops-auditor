@@ -3,6 +3,7 @@ import {
   AuditEnvelopeSchema,
   AuditRequestSchema,
   AuditResultSchema,
+  HealthSchema,
 } from "@/lib/schemas";
 import { scoreFaithfulness } from "@/lib/audit/faithfulness";
 import type { RetrievalHit } from "@/lib/rag/types";
@@ -67,6 +68,19 @@ describe("AuditRequest / AuditResult schemas", () => {
       compliance_status: "MOSTLY_OK",
     });
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe("health / catalog schemas", () => {
+  it("accepts a health payload with policy_count", () => {
+    const parsed = HealthSchema.parse({
+      status: "ok",
+      service: "cloudsec-finops-auditor",
+      gemini_configured: false,
+      policy_count: 15,
+      models: { primary: "gemini-2.5-flash", fallback: "gemini-2.0-flash" },
+    });
+    expect(parsed.policy_count).toBe(15);
   });
 });
 

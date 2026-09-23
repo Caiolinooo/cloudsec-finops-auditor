@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Geist, Geist_Mono, IBM_Plex_Sans } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
 const plex = IBM_Plex_Sans({
@@ -9,20 +9,16 @@ const plex = IBM_Plex_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
-  title: "CloudSec & FinOps Compliance Auditor",
+  title: "Auditoria de conformidade — CloudSec / FinOps",
   description:
-    "Portfolio auditor: hybrid RAG over CIS/SOC2/FinOps policies, Gemini structured JSON, risk + citations + remediation.",
+    "Parecer de conformidade sobre um cenário de arquitetura, com cláusulas CIS/SOC 2/FinOps recuperadas do corpus e JSON estruturado via Gemini.",
 };
 
 type RootLayoutProps = {
@@ -31,10 +27,7 @@ type RootLayoutProps = {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html
-      lang="en"
-      className={`${plex.variable} ${geistSans.variable} ${geistMono.variable} h-full`}
-    >
+    <html lang="pt-BR" className={`${plex.variable} ${plexMono.variable} h-full`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

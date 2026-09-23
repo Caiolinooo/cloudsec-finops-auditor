@@ -20,6 +20,7 @@ function buildPrompt(scenario: string, retrieved: RetrievalHit[]): string {
     "Use COMPLIANT only when the scenario clearly meets the retrieved controls.",
     "Map risk_level from clause severity and exploitability (public data exposure = CRITICAL).",
     "estimated_cost_impact must mention FinOps (storage class, idle spend, or operational cost of the breach).",
+    "Write summary, remediation_steps and estimated_cost_impact in Brazilian Portuguese. Keep policy IDs unchanged.",
     "Return JSON only matching the provided schema.",
     "",
     "## Architecture scenario",

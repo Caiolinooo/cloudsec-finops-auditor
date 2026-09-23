@@ -2,7 +2,7 @@
   "name": "cloudsec-finops-auditor",
   "version": "1.0.0",
   "private": true,
-  "description": "CloudSec & FinOps Compliance Auditor — hybrid RAG + Gemini structured JSON",
+  "description": "Auditor de conformidade CloudSec/FinOps (Next.js, RAG híbrido, Gemini JSON)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
