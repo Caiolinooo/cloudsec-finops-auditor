@@ -1,0 +1,35 @@
+{
+  "name": "cloudsec-finops-auditor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Auditor de conformidade CloudSec/FinOps (Next.js, RAG híbrido, Gemini JSON)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "eval": "tsx evals/run-faithfulness.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^1.30.0",
+    "next": "16.3.6",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.6",
+    "tailwindcss": "^4",
+    "tsx": "^4.20.6",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
+  }
+}

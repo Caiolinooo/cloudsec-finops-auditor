@@ -1,0 +1,5 @@
+{
+  "id": "public-s3-acl",
+  "architecture_scenario": "Conta AWS de produção com o bucket S3 customer-data-prod guardando exportes PCI e PII de cliente. Block Public Access está desligado na conta e no bucket. A ACL do bucket concede READ para AllUsers. Não há bucket policy negando s3:GetObject público. Criptografia default é só SSE-S3. Server access logging desligado. Versionamento desligado.",
+  "expected_policy_ids": ["POL-S3-001"]
+}

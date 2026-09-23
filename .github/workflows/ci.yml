@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    name: lint / typecheck / unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  eval:
+    name: faithfulness eval (live audit path)
+    runs-on: ubuntu-latest
+    needs: unit
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip when GEMINI_API_KEY secret is absent
+        id: guard
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "GEMINI_API_KEY repository secret is not set — skipping DeepEval / live faithfulness."
+            echo "Documented secret: Settings → Secrets and variables → Actions → GEMINI_API_KEY"
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.guard.outputs.has_key == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        if: steps.guard.outputs.has_key == 'true'
+        with:
+          python-version: "3.12"
+      - name: Install Node deps
+        if: steps.guard.outputs.has_key == 'true'
+        run: npm ci
+      - name: Live TypeScript faithfulness gate (≥ 0.85)
+        if: steps.guard.outputs.has_key == 'true'
+        run: npm run eval
+      - name: DeepEval FaithfulnessMetric (≥ 0.85)
+        if: steps.guard.outputs.has_key == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r evals/requirements.txt
+          python evals/deepeval_faithfulness.py
