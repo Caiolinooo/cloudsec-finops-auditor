@@ -1,5 +1,5 @@
-export const PRIMARY_GEMINI_MODEL = "gemini-2.5-flash";
-export const FALLBACK_GEMINI_MODEL = "gemini-2.0-flash";
+export const PRIMARY_GEMINI_MODEL = "gemini-3.6-flash";
+export const FALLBACK_GEMINI_MODEL = "gemini-3.5-flash";
 
 export function getGeminiApiKey(): string | undefined {
   const key = process.env.GEMINI_API_KEY?.trim();

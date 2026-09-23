@@ -78,7 +78,7 @@ describe("health / catalog schemas", () => {
       service: "cloudsec-finops-auditor",
       gemini_configured: false,
       policy_count: 15,
-      models: { primary: "gemini-2.5-flash", fallback: "gemini-2.0-flash" },
+      models: { primary: "gemini-3.6-flash", fallback: "gemini-3.5-flash" },
     });
     expect(parsed.policy_count).toBe(15);
   });

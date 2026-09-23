@@ -33,7 +33,7 @@ o corpus crescer, vira `qdrant.search`; o léxico fica.
 
 `responseSchema` + Zod porque modelo solto devolve prosa. Envelope
 `{ latency_ms, audit }` — sem isso a UI inventa métrica. Uso
-`gemini-2.5-flash` com fallback `gemini-2.0-flash`; Pro não agrega
+`gemini-3.6-flash` com fallback `gemini-3.5-flash`; Pro não agrega
 neste fluxo.
 
 Faithfulness ≥ 0.85 existe porque citação inventada queima o parecer.
@@ -63,8 +63,8 @@ npm run eval         # caminho real; no-op sem chave
 | Variável | Uso | Default |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | `POST /api/v1/audit` | — |
-| `GEMINI_MODEL` | opcional | `gemini-2.5-flash` |
-| `GEMINI_FALLBACK_MODEL` | opcional | `gemini-2.0-flash` |
+| `GEMINI_MODEL` | opcional | `gemini-3.6-flash` |
+| `GEMINI_FALLBACK_MODEL` | opcional | `gemini-3.5-flash` |
 
 ## Vercel
 
