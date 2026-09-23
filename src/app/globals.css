@@ -58,6 +58,36 @@ pre {
   border-bottom: 1px solid var(--line);
 }
 
+.topbar-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.lang-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.lang-toggle button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.lang-toggle button.active {
+  background: var(--accent);
+  color: #f6f3ec;
+}
+
 .kicker {
   margin: 0 0 4px;
   font-family: var(--font-mono);
@@ -140,41 +170,45 @@ pre {
   color: var(--muted);
 }
 
-.preset-grid {
-  display: grid;
+.hint {
+  margin: -2px 0 8px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.examples {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.example-chips {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
-.preset {
+.example-chip {
+  appearance: none;
   text-align: left;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  color: var(--ink);
-  padding: 8px 10px;
+  background: transparent;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  padding: 5px 9px;
+  font-size: 12px;
   cursor: pointer;
 }
 
-.preset:hover,
-.preset.active {
+.example-chip:hover,
+.example-chip.active {
+  border-style: solid;
   border-color: var(--accent);
+  color: var(--ink);
 }
 
-.preset.active {
+.example-chip.active {
   background: color-mix(in srgb, var(--accent) 8%, var(--panel));
-}
-
-.preset-label {
-  display: block;
-  font-size: 13.5px;
-  font-weight: 600;
-}
-
-.preset-blurb {
-  display: block;
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.4;
 }
 
 textarea {
@@ -192,6 +226,10 @@ textarea {
 
 textarea:focus {
   outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 80%, #fff);
 }
 
 .meta-row {
@@ -223,7 +261,7 @@ textarea:focus {
 
 .run:disabled {
   opacity: 0.55;
-  cursor: wait;
+  cursor: not-allowed;
 }
 
 .corpus {

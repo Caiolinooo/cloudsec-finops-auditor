@@ -10,11 +10,15 @@ export type ComplianceStatus = z.infer<typeof ComplianceStatus>;
 export const RiskLevel = z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
 export type RiskLevel = z.infer<typeof RiskLevel>;
 
+export const LocaleSchema = z.enum(["en", "pt"]);
+export type RequestLocale = z.infer<typeof LocaleSchema>;
+
 export const AuditRequestSchema = z.object({
   architecture_scenario: z
     .string()
     .trim()
-    .min(12, "architecture_scenario precisa descrever a arquitetura (mín. 12 caracteres)"),
+    .min(12, "architecture_scenario must describe the architecture (min. 12 characters)"),
+  locale: LocaleSchema.optional(),
 });
 export type AuditRequest = z.infer<typeof AuditRequestSchema>;
 
@@ -60,15 +64,19 @@ export const PolicyCatalogSchema = z.object({
 });
 export type PolicyCatalog = z.infer<typeof PolicyCatalogSchema>;
 
+export const ApiErrorCodeSchema = z.enum([
+  "MISSING_API_KEY",
+  "INVALID_REQUEST",
+  "UPSTREAM_MODEL",
+  "PARSE_ERROR",
+  "INTERNAL",
+  "MODEL_UNAVAILABLE",
+]);
+export type ApiErrorCode = z.infer<typeof ApiErrorCodeSchema>;
+
 export const ApiErrorSchema = z.object({
   error: z.string(),
-  code: z.enum([
-    "MISSING_API_KEY",
-    "INVALID_REQUEST",
-    "UPSTREAM_MODEL",
-    "PARSE_ERROR",
-    "INTERNAL",
-  ]),
+  code: ApiErrorCodeSchema,
   details: z.unknown().optional(),
 });
 export type ApiError = z.infer<typeof ApiErrorSchema>;

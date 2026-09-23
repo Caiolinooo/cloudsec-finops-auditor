@@ -25,20 +25,20 @@ describe("gemini model defaults", () => {
   it("uses current Flash IDs when env overrides are absent", () => {
     delete process.env.GEMINI_MODEL;
     delete process.env.GEMINI_FALLBACK_MODEL;
-    expect(PRIMARY_GEMINI_MODEL).toBe("gemini-3.6-flash");
-    expect(FALLBACK_GEMINI_MODEL).toBe("gemini-3.5-flash");
+    expect(PRIMARY_GEMINI_MODEL).toBe("gemini-3.8-flash");
+    expect(FALLBACK_GEMINI_MODEL).toBe("gemini-3.6-flash");
     expect(getGeminiModels()).toEqual({
-      primary: "gemini-3.6-flash",
-      fallback: "gemini-3.5-flash",
+      primary: "gemini-3.8-flash",
+      fallback: "gemini-3.6-flash",
     });
   });
 
   it("respects GEMINI_MODEL and GEMINI_FALLBACK_MODEL", () => {
-    process.env.GEMINI_MODEL = "gemini-3.8-flash";
-    process.env.GEMINI_FALLBACK_MODEL = "gemini-3.5-flash-lite";
+    process.env.GEMINI_MODEL = "gemini-3.1-pro-preview";
+    process.env.GEMINI_FALLBACK_MODEL = "gemini-3.6-flash";
     expect(getGeminiModels()).toEqual({
-      primary: "gemini-3.8-flash",
-      fallback: "gemini-3.5-flash-lite",
+      primary: "gemini-3.1-pro-preview",
+      fallback: "gemini-3.6-flash",
     });
   });
 });
