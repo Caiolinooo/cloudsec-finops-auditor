@@ -49,6 +49,15 @@ describe("AuditRequest / AuditResult schemas", () => {
       architecture_scenario: "A production S3 bucket is public via ACL.",
     });
     expect(parsed.architecture_scenario.length).toBeGreaterThan(12);
+    expect(parsed.locale).toBeUndefined();
+  });
+
+  it("accepts an optional locale", () => {
+    const parsed = AuditRequestSchema.parse({
+      architecture_scenario: "A production S3 bucket is public via ACL.",
+      locale: "pt",
+    });
+    expect(parsed.locale).toBe("pt");
   });
 
   it("parses a typed envelope { latency_ms, audit }", () => {
@@ -78,7 +87,7 @@ describe("health / catalog schemas", () => {
       service: "cloudsec-finops-auditor",
       gemini_configured: false,
       policy_count: 15,
-      models: { primary: "gemini-3.6-flash", fallback: "gemini-3.5-flash" },
+      models: { primary: "gemini-3.8-flash", fallback: "gemini-3.6-flash" },
     });
     expect(parsed.policy_count).toBe(15);
   });

@@ -1,29 +1,38 @@
 # CloudSec & FinOps Compliance Auditor
 
-Console interno de auditoria. Você descreve um cenário de arquitetura;
-o serviço compara com políticas CIS / SOC 2 / FinOps em Markdown e
+Console de auditoria. Você descreve um cenário de arquitetura; o
+serviço compara com políticas CIS / SOC 2 / FinOps em Markdown e
 devolve um parecer JSON: status, risco, citações, remediação e impacto
 de custo.
 
-UI e API no mesmo Next.js — um deploy na Vercel. Sem FastAPI ao lado
-e sem Streamlit no caminho principal. O browser só chama
+**Ao vivo:** [cloudsec-finops-auditor.vercel.app](https://cloudsec-finops-auditor.vercel.app)
+
+UI e API no mesmo Next.js — um deploy na Vercel. O browser só chama
 `POST /api/v1/audit`. Quem fala com o Gemini é o route handler.
+
+A UI é EN | PT (detecta o idioma do browser; o toggle grava a
+preferência). O parecer do modelo segue o idioma da interface.
 
 EN: CloudSec/FinOps auditor — Next.js App Router, hybrid RAG over
 versioned markdown, Gemini structured JSON, Zod envelope
-`{ latency_ms, audit }`. Same repo.
+`{ latency_ms, audit }`. Same repo. Live URL above. Console language
+follows the browser (`pt*` → PT, otherwise EN).
 
-## Por que assim
+## Como corre
 
 ```mermaid
 flowchart LR
   UI[UI] -->|POST /api/v1/audit| API[Route Handler]
-  API --> RAG[BM25 + TF-IDF local]
+  API --> RAG[BM25 + TF-IDF + RRF]
   RAG --> MD[policies/*.md]
   API --> G[Gemini flash]
   G --> Z[Zod AuditResult]
   Z --> UI
 ```
+
+Detalhe em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Decisões em
+[`docs/DECISIONS.md`](docs/DECISIONS.md). Notas de ameaça em
+[`docs/SECURITY.md`](docs/SECURITY.md).
 
 Route handler no App Router, não um serviço Python: o alvo é um
 projeto só na Vercel. RAG in-process (BM25 + vetor TF-IDF hasheado +
@@ -33,8 +42,12 @@ o corpus crescer, vira `qdrant.search`; o léxico fica.
 
 `responseSchema` + Zod porque modelo solto devolve prosa. Envelope
 `{ latency_ms, audit }` — sem isso a UI inventa métrica. Uso
-`gemini-3.6-flash` com fallback `gemini-3.5-flash`; Pro não agrega
-neste fluxo.
+`gemini-3.8-flash` com fallback `gemini-3.6-flash`. Pro não é o
+default; dá para apontar `GEMINI_MODEL` / `GEMINI_FALLBACK_MODEL` para
+`gemini-3.1-pro-preview` se quiser.
+
+Falha de capacidade (503 / 429 / `UNAVAILABLE`) faz retry curto e
+depois o fallback. Sem parecer inventado.
 
 Faithfulness ≥ 0.85 existe porque citação inventada queima o parecer.
 O job de eval no Actions não quebra se o secret `GEMINI_API_KEY`
@@ -63,8 +76,8 @@ npm run eval         # caminho real; no-op sem chave
 | Variável | Uso | Default |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | `POST /api/v1/audit` | — |
-| `GEMINI_MODEL` | opcional | `gemini-3.6-flash` |
-| `GEMINI_FALLBACK_MODEL` | opcional | `gemini-3.5-flash` |
+| `GEMINI_MODEL` | opcional; aceita `gemini-3.1-pro-preview` | `gemini-3.8-flash` |
+| `GEMINI_FALLBACK_MODEL` | opcional; aceita `gemini-3.1-pro-preview` | `gemini-3.6-flash` |
 
 ## Vercel
 

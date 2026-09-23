@@ -21,19 +21,25 @@ describe("policy corpus", () => {
 
 describe("hybrid retrieval", () => {
   it("ranks the public S3 customer-data case on POL-S3-001", () => {
-    const hits = retrievePolicies(PUBLIC_S3, { k: 6 });
-    expect(hits.map((hit) => hit.policyId)).toContain("POL-S3-001");
-    expect(hits[0]?.policyId).toBe("POL-S3-001");
+    for (const scenario of [PUBLIC_S3.pt, PUBLIC_S3.en]) {
+      const hits = retrievePolicies(scenario, { k: 6 });
+      expect(hits.map((hit) => hit.policyId)).toContain("POL-S3-001");
+      expect(hits[0]?.policyId).toBe("POL-S3-001");
+    }
   });
 
   it("retrieves AdministratorAccess as POL-IAM-005", () => {
-    const hits = retrievePolicies(IAM_ADMIN, { k: 6 });
-    expect(hits.map((hit) => hit.policyId)).toContain("POL-IAM-005");
+    for (const scenario of [IAM_ADMIN.pt, IAM_ADMIN.en]) {
+      const hits = retrievePolicies(scenario, { k: 6 });
+      expect(hits.map((hit) => hit.policyId)).toContain("POL-IAM-005");
+    }
   });
 
   it("retrieves Glacier / 90-day lifecycle as POL-S3-002", () => {
-    const hits = retrievePolicies(GLACIER, { k: 6 });
-    expect(hits.map((hit) => hit.policyId)).toContain("POL-S3-002");
+    for (const scenario of [GLACIER.pt, GLACIER.en]) {
+      const hits = retrievePolicies(scenario, { k: 6 });
+      expect(hits.map((hit) => hit.policyId)).toContain("POL-S3-002");
+    }
   });
 
   it("keeps the three core scenarios among the presets", () => {

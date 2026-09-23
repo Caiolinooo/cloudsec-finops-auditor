@@ -16,9 +16,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Auditor de conformidade — CloudSec / FinOps",
+  title: "CloudSec / FinOps compliance auditor",
   description:
-    "Parecer JSON de um cenário de arquitetura contra cláusulas CIS / SOC 2 / FinOps recuperadas do corpus. Gemini no route handler, Zod no envelope.",
+    "Audit an architecture scenario against CIS / SOC 2 / FinOps clauses. | Audite um cenário de arquitetura contra cláusulas CIS / SOC 2 / FinOps.",
 };
 
 type RootLayoutProps = {
@@ -27,7 +27,7 @@ type RootLayoutProps = {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="pt-BR" className={`${plex.variable} ${plexMono.variable} h-full`}>
+    <html lang="en" className={`${plex.variable} ${plexMono.variable} h-full`}>
       <body className="min-h-full">{children}</body>
     </html>
   );
