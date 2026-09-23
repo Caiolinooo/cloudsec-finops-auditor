@@ -7,6 +7,7 @@ import {
   ApiErrorSchema,
   AuditEnvelopeSchema,
   HealthSchema,
+  MAX_ARCHITECTURE_SCENARIO_CHARS,
   PolicyCatalogSchema,
   type AuditEnvelope,
   type Health,
@@ -72,7 +73,10 @@ export function AuditorConsole() {
   }, [presetId, scenario]);
 
   async function onAudit() {
-    if (scenario.trim().length < 12) return;
+    const trimmed = scenario.trim();
+    if (trimmed.length < 12 || trimmed.length > MAX_ARCHITECTURE_SCENARIO_CHARS) {
+      return;
+    }
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -140,6 +144,7 @@ export function AuditorConsole() {
   }
 
   const tooShort = scenario.trim().length < 12;
+  const tooLong = scenario.trim().length > MAX_ARCHITECTURE_SCENARIO_CHARS;
   const policyCount = catalog?.count ?? health?.policy_count;
 
   return (
@@ -202,6 +207,7 @@ export function AuditorConsole() {
             id="scenario"
             value={scenario}
             onChange={(event) => setScenario(event.target.value)}
+            maxLength={MAX_ARCHITECTURE_SCENARIO_CHARS}
             rows={11}
             spellCheck={false}
           />
@@ -209,6 +215,7 @@ export function AuditorConsole() {
             <span>{copy.chars(scenario.trim().length)}</span>
             {customised ? <span>{copy.edited}</span> : null}
             {tooShort ? <span className="warn-text">{copy.tooShort}</span> : null}
+            {tooLong ? <span className="warn-text">{copy.tooLong}</span> : null}
           </p>
 
           <div className="actions">
@@ -216,7 +223,7 @@ export function AuditorConsole() {
               type="button"
               className="run"
               onClick={onAudit}
-              disabled={state.kind === "loading" || tooShort}
+              disabled={state.kind === "loading" || tooShort || tooLong}
             >
               {state.kind === "loading"
                 ? `${copy.running} ${copy.elapsed(elapsedMs)}`

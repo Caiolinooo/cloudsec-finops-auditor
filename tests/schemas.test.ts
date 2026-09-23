@@ -4,6 +4,7 @@ import {
   AuditRequestSchema,
   AuditResultSchema,
   HealthSchema,
+  MAX_ARCHITECTURE_SCENARIO_CHARS,
 } from "@/lib/schemas";
 import { scoreFaithfulness } from "@/lib/audit/faithfulness";
 import type { RetrievalHit } from "@/lib/rag/types";
@@ -49,6 +50,13 @@ describe("AuditRequest / AuditResult schemas", () => {
       architecture_scenario: "A production S3 bucket is public via ACL.",
     });
     expect(parsed.architecture_scenario.length).toBeGreaterThan(12);
+  });
+
+  it("rejects an oversized architecture_scenario", () => {
+    const parsed = AuditRequestSchema.safeParse({
+      architecture_scenario: "x".repeat(MAX_ARCHITECTURE_SCENARIO_CHARS + 1),
+    });
+    expect(parsed.success).toBe(false);
   });
 
   it("parses a typed envelope { latency_ms, audit }", () => {

@@ -16,3 +16,9 @@ export function getGeminiModels(): { primary: string; fallback: string } {
 export function isGeminiConfigured(): boolean {
   return Boolean(getGeminiApiKey());
 }
+
+/** When set, POST /api/v1/audit requires Bearer or x-audit-token. UI stays public if unset. */
+export function getAuditAccessToken(): string | undefined {
+  const token = process.env.AUDIT_ACCESS_TOKEN?.trim();
+  return token || undefined;
+}

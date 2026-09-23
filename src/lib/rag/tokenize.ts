@@ -37,10 +37,12 @@ export function extractPolicyId(text: string): string | undefined {
   return match ? match[0].toUpperCase() : undefined;
 }
 
-export function charNgrams(text: string, n = 3): string[] {
+export function charNgrams(text: string, n = 3, maxGrams = 400): string[] {
   const compact = text.toLowerCase().replace(/[^a-z0-9]+/g, " ");
+  const available = Math.max(0, compact.length - n + 1);
+  const limit = Math.min(maxGrams, available);
   const grams: string[] = [];
-  for (let i = 0; i <= compact.length - n; i += 1) {
+  for (let i = 0; i < limit; i += 1) {
     grams.push(compact.slice(i, i + n));
   }
   return grams;

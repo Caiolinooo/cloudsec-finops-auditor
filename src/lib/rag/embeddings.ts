@@ -20,7 +20,7 @@ function hashFeature(feature: string): number {
 
 function featuresFor(text: string): string[] {
   const tokens = tokenize(text);
-  return [...tokens, ...charNgrams(text, 3).slice(0, 400)];
+  return [...tokens, ...charNgrams(text, 3, 400)];
 }
 
 function accumulate(

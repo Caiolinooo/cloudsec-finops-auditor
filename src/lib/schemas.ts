@@ -10,11 +10,18 @@ export type ComplianceStatus = z.infer<typeof ComplianceStatus>;
 export const RiskLevel = z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
 export type RiskLevel = z.infer<typeof RiskLevel>;
 
+export const MAX_ARCHITECTURE_SCENARIO_CHARS = 8_000;
+export const MAX_AUDIT_BODY_CHARS = 24_000;
+
 export const AuditRequestSchema = z.object({
   architecture_scenario: z
     .string()
     .trim()
-    .min(12, "architecture_scenario precisa descrever a arquitetura (mín. 12 caracteres)"),
+    .min(12, "architecture_scenario precisa descrever a arquitetura (mín. 12 caracteres)")
+    .max(
+      MAX_ARCHITECTURE_SCENARIO_CHARS,
+      `architecture_scenario excede ${MAX_ARCHITECTURE_SCENARIO_CHARS} caracteres`,
+    ),
 });
 export type AuditRequest = z.infer<typeof AuditRequestSchema>;
 
@@ -65,6 +72,9 @@ export const ApiErrorSchema = z.object({
   code: z.enum([
     "MISSING_API_KEY",
     "INVALID_REQUEST",
+    "UNAUTHORIZED",
+    "RATE_LIMITED",
+    "PAYLOAD_TOO_LARGE",
     "UPSTREAM_MODEL",
     "PARSE_ERROR",
     "INTERNAL",

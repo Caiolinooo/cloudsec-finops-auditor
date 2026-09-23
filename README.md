@@ -65,6 +65,7 @@ npm run eval         # caminho real; no-op sem chave
 | `GEMINI_API_KEY` | `POST /api/v1/audit` | — |
 | `GEMINI_MODEL` | opcional | `gemini-2.5-flash` |
 | `GEMINI_FALLBACK_MODEL` | opcional | `gemini-2.0-flash` |
+| `AUDIT_ACCESS_TOKEN` | opcional; se setado, exige Bearer/`x-audit-token` | — |
 
 ## Vercel
 
@@ -73,7 +74,10 @@ Projeto Next.js. Em **Settings → Environment Variables**, gravar
 `GET /api/health` responde `gemini_configured: false` e
 `POST /api/v1/audit` devolve `503 MISSING_API_KEY`.
 
-Opcionais: `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`.
+Opcionais: `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`, `AUDIT_ACCESS_TOKEN`.
+`POST /api/v1/audit` limita o cenário a 8000 caracteres, recusa corpos grandes
+e aplica rate limit por IP (best-effort por instância). Sem token o console
+interno continua público; com token só callers autenticados gastam a chave.
 Build: `npm run build`. Output padrão.
 
 ## CI

@@ -29,6 +29,7 @@ export const copy = {
     "O build sobe sem a chave; a auditoria não. Copie .env.example para .env.local e reinicie, ou grave a variável no projeto da Vercel.",
   errorTitle: "Falha na auditoria",
   tooShort: "Mínimo 12 caracteres.",
+  tooLong: "Máximo 8000 caracteres.",
   geminiOk: "Gemini configurado",
   geminiOff: "Gemini sem chave",
   policiesLoading: "políticas…",

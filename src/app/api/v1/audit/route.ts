@@ -1,30 +1,79 @@
 import { NextResponse } from "next/server";
+import { isAuditAuthorized } from "@/lib/audit/auth";
+import { clientKeyFromHeaders, consumeAuditRateLimit } from "@/lib/audit/rate-limit";
 import { MissingApiKeyError, runAudit } from "@/lib/audit/service";
 import { UpstreamModelError } from "@/lib/gemini/client";
-import { AuditEnvelopeSchema, AuditRequestSchema, type ApiError } from "@/lib/schemas";
+import {
+  AuditEnvelopeSchema,
+  AuditRequestSchema,
+  MAX_AUDIT_BODY_CHARS,
+  type ApiError,
+} from "@/lib/schemas";
 
 export const runtime = "nodejs";
+export const maxDuration = 45;
+
+function errorBody(code: ApiError["code"], error: string, details?: unknown): ApiError {
+  return details === undefined ? { error, code } : { error, code, details };
+}
 
 export async function POST(request: Request) {
+  if (!isAuditAuthorized(request.headers)) {
+    return NextResponse.json(
+      errorBody("UNAUTHORIZED", "Token de auditoria ausente ou inválido"),
+      { status: 401 },
+    );
+  }
+
+  const limited = consumeAuditRateLimit(clientKeyFromHeaders(request.headers));
+  if (!limited.ok) {
+    return NextResponse.json(
+      errorBody("RATE_LIMITED", "Muitas auditorias neste intervalo. Tente de novo em instantes."),
+      {
+        status: 429,
+        headers: { "Retry-After": String(limited.retryAfterSec) },
+      },
+    );
+  }
+
+  let raw: string;
+  try {
+    raw = await request.text();
+  } catch {
+    return NextResponse.json(errorBody("INVALID_REQUEST", "O corpo precisa ser JSON"), {
+      status: 400,
+    });
+  }
+
+  if (raw.length > MAX_AUDIT_BODY_CHARS) {
+    return NextResponse.json(
+      errorBody(
+        "PAYLOAD_TOO_LARGE",
+        `Corpo da auditoria excede ${MAX_AUDIT_BODY_CHARS} caracteres`,
+      ),
+      { status: 413 },
+    );
+  }
+
   let json: unknown;
   try {
-    json = await request.json();
+    json = JSON.parse(raw) as unknown;
   } catch {
-    const body: ApiError = {
-      error: "O corpo precisa ser JSON",
-      code: "INVALID_REQUEST",
-    };
-    return NextResponse.json(body, { status: 400 });
+    return NextResponse.json(errorBody("INVALID_REQUEST", "O corpo precisa ser JSON"), {
+      status: 400,
+    });
   }
 
   const parsed = AuditRequestSchema.safeParse(json);
   if (!parsed.success) {
-    const body: ApiError = {
-      error: parsed.error.issues[0]?.message ?? "Pedido de auditoria inválido",
-      code: "INVALID_REQUEST",
-      details: parsed.error.flatten(),
-    };
-    return NextResponse.json(body, { status: 400 });
+    return NextResponse.json(
+      errorBody(
+        "INVALID_REQUEST",
+        parsed.error.issues[0]?.message ?? "Pedido de auditoria inválido",
+        parsed.error.flatten(),
+      ),
+      { status: 400 },
+    );
   }
 
   try {
@@ -36,25 +85,23 @@ export async function POST(request: Request) {
     return NextResponse.json(envelope);
   } catch (error) {
     if (error instanceof MissingApiKeyError) {
-      const body: ApiError = {
-        error:
+      return NextResponse.json(
+        errorBody(
+          "MISSING_API_KEY",
           "GEMINI_API_KEY ausente. Grave em .env.local ou nas variáveis do projeto na Vercel.",
-        code: "MISSING_API_KEY",
-      };
-      return NextResponse.json(body, { status: 503 });
+        ),
+        { status: 503 },
+      );
     }
     if (error instanceof UpstreamModelError) {
-      const body: ApiError = {
-        error: error.message,
-        code: /valida/i.test(error.message) ? "PARSE_ERROR" : "UPSTREAM_MODEL",
-      };
-      return NextResponse.json(body, { status: 502 });
+      return NextResponse.json(
+        errorBody("UPSTREAM_MODEL", "O modelo upstream falhou ou devolveu um parecer inválido."),
+        { status: 502 },
+      );
     }
 
-    const body: ApiError = {
-      error: error instanceof Error ? error.message : "Falha inesperada na auditoria",
-      code: "INTERNAL",
-    };
-    return NextResponse.json(body, { status: 500 });
+    return NextResponse.json(errorBody("INTERNAL", "Falha inesperada na auditoria"), {
+      status: 500,
+    });
   }
 }
